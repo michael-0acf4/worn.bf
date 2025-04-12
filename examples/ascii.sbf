@@ -1,0 +1,9 @@
+super printASCII(index){
+    > add() [>add()<-]> +++++ add() .
+}
+
+printASCII(0)
+printASCII(1)
+printASCII(2)
++ .
+++ .
