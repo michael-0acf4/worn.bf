@@ -82,9 +82,13 @@ impl<'a> Program<'a> {
     fn parse_until(&mut self, end: &str) -> Result<Vec<WithPos<Instruction>>, Error> {
         let mut result = vec![];
         while !self.starts_with(end) {
+            if self.pos >= self.source.len() {
+                break;
+            }
             result.push(self.parse_instruction()?);
+            self.skip_whitespace();
         }
-        println!("here");
+
         Ok(result)
     }
 
@@ -98,11 +102,13 @@ impl<'a> Program<'a> {
         let ret = match c {
             '+' | '-' => {
                 self.pos += 1;
-                Ok(Instruction::Add(if c == '+' { 1 } else { -1 }))
+                let dir = if c == '+' { 1 } else { -1 };
+                Ok(Instruction::Add(self.consume_and_count(c)? as i32 * dir))
             }
             '>' | '<' => {
                 self.pos += 1;
-                Ok(Instruction::Move(if c == '>' { 1 } else { -1 }))
+                let dir = if c == '>' { 1 } else { -1 };
+                Ok(Instruction::Move(self.consume_and_count(c)? as i32 * dir))
             }
             '[' => {
                 self.pos += 1;
@@ -150,11 +156,13 @@ impl<'a> Program<'a> {
             }
             println!("arg");
 
+            let current = self.pos;
+
             args.push(self.parse_instruction()?);
             println!("arg??");
             self.skip_whitespace();
             if self.peek_char() == Some(',') {
-                self.pos += 1;
+                self.consume(",")?;
             } else {
                 break;
             }
@@ -173,6 +181,7 @@ impl<'a> Program<'a> {
                 break;
             }
         }
+
         if start == self.pos {
             Err(self.err("Expected identifier"))
         } else {
@@ -190,17 +199,40 @@ impl<'a> Program<'a> {
         }
     }
 
+    fn skip_inline_comments(&mut self) {
+        if let Ok(_) = self.consume("//") {
+            self.parse_until("\n").ok();
+        }
+    }
+
     fn starts_with(&self, s: &str) -> bool {
         self.source[self.pos..].starts_with(s)
     }
 
     fn consume(&mut self, expected: &str) -> Result<(), Error> {
+        self.skip_whitespace();
+
         if self.starts_with(expected) {
             self.pos += expected.len();
             Ok(())
         } else {
             Err(self.err(&format!("Expected '{expected}'")))
         }
+    }
+
+    fn consume_and_count(&mut self, c: char) -> Result<usize, Error> {
+        let mut count = 0;
+        loop {
+            self.skip_whitespace();
+            if self.peek_char() == Some(c) {
+                count += 1;
+                self.consume(&c.to_string())?;
+            } else {
+                break;
+            }
+        }
+
+        Ok(count)
     }
 
     fn peek_char(&self) -> Option<char> {
