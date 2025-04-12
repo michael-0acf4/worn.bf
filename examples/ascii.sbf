@@ -1,9 +1,23 @@
-super printASCII(index){
-    > add() [>add()<-]> +++++ add() .
+super six() {
+    // R repeats the first argument the amount of the second argument
+    R(+, 6)
 }
 
-printASCII(0)
-printASCII(1)
-printASCII(2)
-+ .
-++ .
+super ten() {
+    six()++++
+}
+
+super printASCII(index) {
+    > ten() [>six()<-]> +++++ R(+, index) .
+}
+
+printASCII() // A
+printASCII(+) // B
+printASCII(++) // C
++ . // D
+++ . // E
+printASCII() // E
+printASCII(+) // F
+
+>65+. // B
+>"CD".>. // "CD" is a shortcut for  R(+, 68)>R(+, 69)

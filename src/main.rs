@@ -1,8 +1,8 @@
 use clap::Parser;
-use sbf::Program;
+use parser::{ast::Instruction, ast::Reconstruct, parse_program};
 use std::{path::PathBuf, process::exit};
 
-mod intr;
+mod parser;
 mod sbf;
 
 /// WORN (Write Once, Run Nowhere)
@@ -28,23 +28,12 @@ fn main() {
     let args = CompilerArgs::parse();
 
     let content = std::fs::read_to_string(args.file).expect("Unable to read file");
-    let mut program = Program::from(&content);
-    match program.parse() {
+    match parse_program(&content) {
         Ok(code) => {
-            for instr in code {
-                println!("{}", instr.reconstruct());
-            }
+            println!("{}", code.reconstruct());
         }
         Err(e) => {
-            match e {
-                sbf::Error::UnexpectedToken { message, span }
-                | sbf::Error::UnexpectedEof { message, span } => {
-                    eprintln!("Pared\n {}\n", &content[..span.start]);
-                    eprintln!("{:?}: {message}", &content[span.start..span.end])
-                }
-            }
-
-            exit(1);
+            panic!("{e:?}");
         }
     }
 }
