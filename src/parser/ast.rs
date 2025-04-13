@@ -136,3 +136,25 @@ impl Reconstruct for Vec<WithPos<Instruction>> {
             .join("\n")
     }
 }
+
+impl Instruction {
+    pub fn as_literal(&self) -> Option<String> {
+        if let Instruction::InlineValue(v) = self {
+            if let SuperValue::Literal(s) = v {
+                return Some(s.clone());
+            }
+        }
+
+        None
+    }
+
+    pub fn as_integer(&self) -> Option<u32> {
+        if let Instruction::InlineValue(v) = self {
+            if let SuperValue::Integer(s) = v {
+                return Some(s.clone());
+            }
+        }
+
+        None
+    }
+}

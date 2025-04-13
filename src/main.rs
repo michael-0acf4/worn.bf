@@ -1,5 +1,6 @@
 use clap::Parser;
 use parser::{ast::Reconstruct, parse_program};
+use sbf::SBFEmitter;
 use std::path::PathBuf;
 
 mod parser;
@@ -34,6 +35,10 @@ fn main() {
     match parse_program(&content) {
         Ok(code) => {
             println!("{}", code.reconstruct());
+
+            let mut emitter = SBFEmitter::new(&content).unwrap();
+            emitter.compile().unwrap();
+            println!("\n------------\n\n{}", emitter.finalize().unwrap())
         }
         Err(e) => {
             panic!("{e:?}");
