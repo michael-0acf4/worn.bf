@@ -1,4 +1,6 @@
-# sbf
+# worn
+
+"Write Once, Run Nowhere"
 
 A minimalistic language that extends Brainf\*ck allowing the use of custom super
 instructions and compiles into optimmized Brainf\*ck code.
@@ -28,7 +30,7 @@ super incr(n) {
 }
 
 super six() {
-    incr(6) // instruction as arg works as long as they are simple and does not have ',' as it is a valid bf instruction
+    incr(6)
 }
 
 super ten() {
