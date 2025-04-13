@@ -1,7 +1,7 @@
 # sbf
 
-A minimalistic language that extends Brainf*ck allowing the use of custom super
-instructions and compiles into optimmized Brainf*ck code.
+A minimalistic language that extends Brainf\*ck allowing the use of custom super
+instructions and compiles into optimmized Brainf\*ck code.
 
 ```rust
 // A super instruction is a context aware generator that expands
@@ -18,9 +18,17 @@ super INSTR(arg1, arg2, ..) {
 Example:
 
 ```rust
-super six() {
+super incr(n) {
     // R repeats the first argument the amount of the second argument
-    R(+, 6)
+      R(I(+), n) 
+       // ^^
+       // inline instructions should work as arguments as long as they are single,
+       // or multiple with each not having ',' as it is a valid bf instruction
+       // otherwise the remaining instruction are considered to be part of the first half
+}
+
+super six() {
+    incr(6) // instruction as arg works as long as they are simple and does not have ',' as it is a valid bf instruction
 }
 
 super ten() {
@@ -28,7 +36,7 @@ super ten() {
 }
 
 super printASCII(index) {
-    > ten() [>six()<-]> +++++ R(+, index) .
+    > ten() [>six()<-]> +++++ incr(index) .
 }
 
 printASCII() // A
@@ -40,7 +48,7 @@ printASCII() // E
 printASCII(+) // F
 
 >65+. // B
->"CD".>. // "CD" is a shortcut for  R(+, 68)>R(+, 69)
+>"CD".>. // "CD" is a shortcut for  R(I(+), 68)>R(I(+), 69)
 ```
 
 # Why?

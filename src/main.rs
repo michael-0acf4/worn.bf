@@ -1,9 +1,12 @@
 use clap::Parser;
-use parser::{ast::Instruction, ast::Reconstruct, parse_program};
-use std::{path::PathBuf, process::exit};
+use parser::{ast::Reconstruct, parse_program};
+use std::path::PathBuf;
 
 mod parser;
 mod sbf;
+
+#[cfg(test)]
+mod tests;
 
 /// WORN (Write Once, Run Nowhere)
 /// the "ultimate" Brainfuck emitter/compiler/optimizer
