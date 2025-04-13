@@ -1,5 +1,4 @@
 super incr(n) {
-    // FIXME: bad var results in infinite loop?
     // R repeats the second argument the amount of the first argument
     super first(a) {
         super second(b) {

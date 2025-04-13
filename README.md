@@ -1,4 +1,4 @@
-# W.O.R.N: "Write Once, Run Nowhere"
+# WORN "Write Once, Run Nowhere"
 
 A minimalistic language that extends Brainf\*ck allowing the use of custom super
 instructions and compiles into optimized Brainf\*ck code.
@@ -13,7 +13,15 @@ super INSTR(arg1, arg2, ..) {
 }
 ```
 
-Example:
+# Optimization
+
+Optimization here does not mean make it run fast, but rather **shorten** the
+character count and **maybe** make it fast and memory efficient along the way.
+
+Two Braif\*ck programs are considered equal if the stdout and stdin side-effects
+are the same, we do not really care about the resulting memory layout.
+
+# Examples
 
 ```rust
 super incr(n) {
@@ -42,7 +50,15 @@ printASCII(0) // A
 printASCII(1) // B
 >65+. // B
 
->>>>"CD"<<.>.>. // "CD" is a shortcut for  R(68, +)>R(69, +)
+>>>>"CD"<<.>.>. // "CD" is a shortcut for  R(67, +)>R(68, +)
+```
+
+The above code should expand to the following
+
+```bf
+ABCDEABB CD
+
+>++++++++++[>++++++<-]>+++++.>++++++++++[>++++++<-]>++++++.>++++++++++[>++++++<-]>+++++++.+.+.>++++++++++[>++++++<-]>+++++.>++++++++++[>++++++<-]>++++++.>++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++.>>>>+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++>++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++<<.>.>.
 ```
 
 Super functions can be nested..
@@ -68,8 +84,3 @@ super incr(n) {
     first(n)
 }
 ```
-
-# Why?
-
-This is a toy project for that showcases static code analysis and static
-optimization.

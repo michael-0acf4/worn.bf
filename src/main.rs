@@ -3,6 +3,7 @@ use parser::{ast::Reconstruct, parse_program};
 use sbf::SBFEmitter;
 use std::path::PathBuf;
 
+mod optimizer;
 mod parser;
 mod sbf;
 
@@ -20,28 +21,26 @@ struct CompilerArgs {
     /// Set the output file
     #[arg(short)]
     output: Option<String>,
-    /// Compile worn lang to Brainf*ck
-    #[arg(short, long)]
-    worn: bool,
     /// Enable optimization
     #[arg(short = 'x', long)]
     optimize: bool,
 }
 
-fn main() {
+fn main() -> Result<(), String> {
     let args = CompilerArgs::parse();
 
     let content = std::fs::read_to_string(args.file).expect("Unable to read file");
-    match parse_program(&content) {
-        Ok(code) => {
-            println!("{}", code.reconstruct());
-
-            let mut emitter = SBFEmitter::new(&content).unwrap();
-            emitter.compile().unwrap();
-            println!("\n------------\n\n{}", emitter.finalize().unwrap())
-        }
-        Err(e) => {
-            panic!("{e:?}");
-        }
-    }
+    parse_program(&content).and_then(|program| {
+        println!("{}", program.reconstruct());
+        let mut emitter = SBFEmitter::new(program);
+        emitter.compile().map_err(|e| e.to_string())?;
+        println!(
+            "\n------------\n\n{}",
+            emitter
+                .finalize()
+                .map(|bi| bi.reconstruct())
+                .map_err(|e| e.to_string())?
+        );
+        Ok(())
+    })
 }

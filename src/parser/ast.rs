@@ -158,3 +158,45 @@ impl Instruction {
         None
     }
 }
+
+// Actual spec
+#[derive(Debug, Clone)]
+pub enum BInstr {
+    Add(i32),
+    Move(i32),
+    LoopStart,
+    LoopEnd,
+    PutC,
+    GetC,
+}
+
+impl From<Instruction> for BInstr {
+    fn from(value: Instruction) -> Self {
+        match value {
+            Instruction::Add(n) => BInstr::Add(n),
+            Instruction::Move(n) => BInstr::Move(n),
+            Instruction::PutC => BInstr::PutC,
+            Instruction::GetC => BInstr::GetC,
+            _ => panic!("Invalid state: attempt converting from {value:?} to BInstr"),
+        }
+    }
+}
+
+impl Reconstruct for BInstr {
+    fn reconstruct_at_depth(&self, _: usize) -> String {
+        match self {
+            BInstr::Add(n) => Instruction::Add(*n).reconstruct(),
+            BInstr::Move(n) => Instruction::Move(*n).reconstruct(),
+            BInstr::LoopStart => "[".to_string(),
+            BInstr::LoopEnd => "]".to_string(),
+            BInstr::PutC => ".".to_string(),
+            BInstr::GetC => ",".to_string(),
+        }
+    }
+}
+
+impl Reconstruct for Vec<BInstr> {
+    fn reconstruct_at_depth(&self, _: usize) -> String {
+        self.iter().map(|instr| instr.reconstruct()).collect()
+    }
+}

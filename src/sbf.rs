@@ -1,7 +1,4 @@
-use crate::parser::{
-    ast::{Instruction, Reconstruct, SuperValue, WithPos},
-    parse_program,
-};
+use crate::parser::ast::{BInstr, Instruction, Reconstruct, SuperValue, WithPos};
 
 #[derive(Debug, Clone)]
 #[allow(unused)]
@@ -21,6 +18,30 @@ pub enum CompileError {
         start: usize,
         end: usize,
     },
+}
+
+impl ToString for CompileError {
+    fn to_string(&self) -> String {
+        match self {
+            CompileError::Invalid {
+                message,
+                start,
+                end,
+            } => {
+                format!("{message} at {start} .. {end}")
+            }
+            CompileError::UndeclaredFunction { name, start, end }
+            | CompileError::UndeclaredSymbol { name, start, end } => {
+                let prefix = if matches!(self, CompileError::UndeclaredSymbol { .. }) {
+                    "symbol"
+                } else {
+                    "function"
+                };
+
+                format!("Undeclared {prefix} {name:?} at {start} .. {end}")
+            }
+        }
+    }
 }
 
 pub trait Named {
@@ -115,7 +136,7 @@ impl Named for SymbolInfo {
 pub struct Context {
     func_scope: ScopedStack<SymbolInfo>,
     variable_scope: ScopedStack<VariableSet>,
-    output: Vec<String>,
+    output: Vec<BInstr>,
 }
 
 impl Context {
@@ -175,18 +196,26 @@ pub struct SBFEmitter {
 }
 
 impl SBFEmitter {
-    pub fn new(s: &str) -> Result<Self, String> {
-        Ok(Self {
+    pub fn new(program: Vec<WithPos<Instruction>>) -> Self {
+        Self {
             context: Context::create(),
-            program: parse_program(s)?,
-        })
+            program,
+        }
     }
 
-    pub fn finalize(&self) -> Result<String, String> {
-        Ok(self.context.output.join(""))
+    pub fn finalize(self) -> Result<Vec<BInstr>, String> {
+        Ok(self.context.output)
     }
 
-    pub fn emit_inline(&mut self, s: String) -> Result<(), CompileError> {
+    pub fn emit_inline_seq(&mut self, ss: Vec<BInstr>) -> Result<(), CompileError> {
+        for s in ss {
+            self.emit_inline(s)?;
+        }
+
+        Ok(())
+    }
+
+    pub fn emit_inline(&mut self, s: BInstr) -> Result<(), CompileError> {
         self.context.output.push(s);
         Ok(())
     }
@@ -224,13 +253,23 @@ impl SBFEmitter {
         super_value: &WithPos<SuperValue>,
     ) -> Result<(), CompileError> {
         match &super_value.value {
-            SuperValue::Integer(n) => self.emit_inline("+".repeat(*n as usize)),
-            SuperValue::String(s) => self.emit_inline(
-                s.chars()
-                    .map(|s| Instruction::Add(s as i32 & 0xff).reconstruct())
-                    .collect::<Vec<_>>()
-                    .join(">"),
-            ),
+            SuperValue::Integer(n) => self.emit_inline(BInstr::Add(*n as i32)),
+            SuperValue::String(s) => self.emit_inline_seq({
+                let chunks = s
+                    .chars()
+                    .map(|s| BInstr::Add(s as i32 & 0xff))
+                    .collect::<Vec<_>>();
+                let total = chunks.len();
+                let mut output = vec![];
+                for (i, instr) in chunks.into_iter().enumerate() {
+                    output.push(instr);
+                    if i + 1 != total {
+                        output.push(BInstr::Move(1))
+                    }
+                }
+
+                output
+            }),
             SuperValue::Literal(lit) => {
                 if let Some(var) = self.context.resolve_variable_rec(&lit) {
                     self.emit_instr(&var)?;
@@ -280,15 +319,15 @@ impl SBFEmitter {
     }
 
     pub fn emit_loop(&mut self, body: &[WithPos<Instruction>]) -> Result<(), CompileError> {
-        self.emit_inline("[".to_string())?;
+        self.emit_inline(BInstr::LoopStart)?;
         self.emit_body(&body)?;
-        self.emit_inline("]".to_string())
+        self.emit_inline(BInstr::LoopEnd)
     }
 
     pub fn emit_instr(&mut self, instr: &WithPos<Instruction>) -> Result<(), CompileError> {
         match &instr.value {
             Instruction::Add(_) | Instruction::Move(_) | Instruction::PutC | Instruction::GetC => {
-                self.emit_inline(instr.value.reconstruct())?
+                self.emit_inline(instr.value.clone().into())?
             }
             Instruction::Loop { body } => self.emit_loop(body)?,
             Instruction::InlineValue(super_value) => {
