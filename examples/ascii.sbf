@@ -1,6 +1,23 @@
 super incr(n) {
+    // FIXME: bad var results in infinite loop?
     // R repeats the second argument the amount of the first argument
-    R(n, +) 
+    super first(a) {
+        super second(b) {
+            super third(c) {
+                R(b, +)
+            }
+
+            super fourth(d) {
+                third(d)
+            }
+
+            fourth(b)
+        }
+
+        second(a)
+    }
+
+    first(n)
 }
 
 super six() {

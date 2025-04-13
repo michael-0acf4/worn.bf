@@ -1,7 +1,7 @@
 # W.O.R.N: "Write Once, Run Nowhere"
 
 A minimalistic language that extends Brainf\*ck allowing the use of custom super
-instructions and compiles into optimmized Brainf\*ck code.
+instructions and compiles into optimized Brainf\*ck code.
 
 ```rust
 // A super instruction is a context aware generator that expands
@@ -43,6 +43,30 @@ printASCII(1) // B
 >65+. // B
 
 >>>>"CD"<<.>.>. // "CD" is a shortcut for  R(68, +)>R(69, +)
+```
+
+Super functions can be nested..
+
+```rs
+super incr(n) {
+    super first(a) {
+        super second(b) {
+            super third(c) {
+                R(b, +)
+            }
+
+            super fourth(d) {
+                third(d)
+            }
+
+            fourth(b)
+        }
+
+        second(a)
+    }
+
+    first(n)
+}
 ```
 
 # Why?
