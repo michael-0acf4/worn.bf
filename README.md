@@ -160,16 +160,18 @@ The trick is to loop close to the target.
 
 An easy trick that I found very useful (in the context of code generation) is to find the exponent of some number C that is closest to the target value. Use that to define the amount of inner loop to effectively perform a multiplication.
 
-Assume $$ N = C^k = C^{\lfloor k \rfloor -1} \times \lceil C^{ k - \lfloor k \rfloor + 1 } \rceil + \delta $$
+Assume
+
+$$N = C^k = C^{\lfloor k \rfloor -1} \times \lceil C^{ k - \lfloor k \rfloor + 1 } \rceil + \delta$$
 
 So if we have some value $N = 169$ and $C = 3$
-$$ 169 = 3^k \rightarrow k = log_3 (169) \approx 4.669 $$
+$$169 = 3^k \rightarrow k = log_3 (169) \approx 4.669$$
 
 We break down into an inner loop count $\lfloor 4.669 \rfloor-1 = 3$, and an outer factor $\lceil $3^{4.669 - \lfloor 4.669 \rfloor + 1 = 1.669} \rceil = 7$.
 
 This trick works and is exact whatever the difference $\delta$ is we get it minus the target, then we add/sub to compensate.
 
-$$ \delta = N - C^{\lfloor k \rfloor -1} \times \lceil C^{ k - \lfloor k \rfloor + 1 } \rceil = 169 - 3^{3} \times 7 = 20$$ 
+$$\delta = N - C^{\lfloor k \rfloor -1} \times \lceil C^{ k - \lfloor k \rfloor + 1 } \rceil = 169 - 3^{3} \times 7 = 20$$ 
 
 Then we get..
 
