@@ -13,8 +13,8 @@ pub enum SuperValue {
 pub enum Instruction {
     Add(i32),
     Move(i32),
-    PutC,
-    GetC,
+    Put(u32),
+    Get(u32),
     Loop {
         body: Vec<WithPos<Instruction>>,
     },
@@ -108,8 +108,8 @@ impl Reconstruct for Instruction {
                     indent
                 )
             }
-            Instruction::PutC => format!("{}{}", " ".repeat(depth), '.'),
-            Instruction::GetC => format!("{}{}", " ".repeat(depth), ','),
+            Instruction::Put(n) => format!("{}{}", " ".repeat(depth), ".".repeat(*n as usize)),
+            Instruction::Get(n) => format!("{}{}", " ".repeat(depth), ",".repeat(*n as usize)),
             Instruction::SuperFunction { name, args, body } => {
                 let header = format!(
                     "super {}({})",
@@ -166,8 +166,8 @@ pub enum BInstr {
     Move(i32),
     LoopStart,
     LoopEnd,
-    PutC,
-    GetC,
+    PutC(u32),
+    GetC(u32),
 }
 
 impl From<Instruction> for BInstr {
@@ -175,8 +175,8 @@ impl From<Instruction> for BInstr {
         match value {
             Instruction::Add(n) => BInstr::Add(n),
             Instruction::Move(n) => BInstr::Move(n),
-            Instruction::PutC => BInstr::PutC,
-            Instruction::GetC => BInstr::GetC,
+            Instruction::Put(n) => BInstr::PutC(n),
+            Instruction::Get(n) => BInstr::GetC(n),
             _ => panic!("Invalid state: attempt converting from {value:?} to BInstr"),
         }
     }
@@ -189,8 +189,8 @@ impl Reconstruct for BInstr {
             BInstr::Move(n) => Instruction::Move(*n).reconstruct(),
             BInstr::LoopStart => "[".to_string(),
             BInstr::LoopEnd => "]".to_string(),
-            BInstr::PutC => ".".to_string(),
-            BInstr::GetC => ",".to_string(),
+            BInstr::PutC(n) => ".".repeat(*n as usize).to_string(),
+            BInstr::GetC(n) => ",".repeat(*n as usize).to_string(),
         }
     }
 }

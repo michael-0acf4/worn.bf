@@ -201,10 +201,51 @@ R(169, +)
 >>>+++++++[<+++[<+++[<+++>-]>-]>-]<<+++++++[<--->-]<+
 ```
 
+When we have repeating I/O, we can do the same. We simply decrement, print/get,
+repeat until we reach 0, the decrement amount is just a value that is folded
+using the technique previouvsly discussed.
+
+This does break an assumption though: "I/O does not write into memory", as such
+it is unsafe for some programs.
+
+```rust
+// stdout
+> amount_fold [-<.>]<
+// stdin
+> amount_fold [-<,>]<
+```
+
+When does this break? A simple case is reusing contiguous buffers, one common
+case is when you want to prepare a few contiguous cells. In general, it is not a
+real problem though. If your code has many consecutive prints you can always
+express it in a way that it is safely optimizable.
+
+```rust
+// This will break as it relies on B never being overwritten
+"AB" < R(50, .) > R(50, .)
+// -O4 -a unsafe-fold-io
+// >+++++++++++[<++++++>-]<->>>++++++++[<+++[<+++>-]>-]<<------>>>>+++[<++[<++[<++[<++>-]>-]>-]>-]<<<<++[-<.>]>>>>>+++[<++[<++[<++[<++>-]>-]>-]>-]<<<<++[-<.>]<
+
+
+// That can be fixed though and can be rewritten as
+"A" R(50, .) > "B" R(50, .)
+// -O4 -a unsafe-fold-io
+// >+++++++++++[<++++++>-]<->>>>>+++[<++[<++[<++[<++>-]>-]>-]>-]<<<<++[-<.>]>>++++++++[<+++[<+++>-]>-]<<------>>>>>+++[<++[<++[<++[<++>-]>-]>-]>-]<<<<++[-<.>]<
+```
+
+This can be enabled with `-a unsafe-fold-io` and `-O3` or higher.
+
 > **WARNING**
 >
-> All above optimization tricks work because they all assume that at any point
-> in the program any upcoming memory cells are all 0. There is no way to check
-> that at compile without running the actual program.
+> Although I made some accent on I/O in particular, most above optimization
+> tricks work because they all assume that at any point in the program any
+> upcoming memory cells are all 0. There is no way to check that at compile
+> without running the actual program.
 >
-> You can disable optimization with `-O0`
+> I/O folding can be very unsafe but the other techniques should work on most
+> programs.
+>
+> When authoring a program you can rewrite it in a form that enables the above
+> assumptions to enable the optimizers.
+>
+> You can disable optimization with `-O0` or use simple folding with `-O1`.

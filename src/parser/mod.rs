@@ -105,14 +105,19 @@ fn parse_loop(input: Span) -> IResult<Span, WithPos<Instruction>> {
     })(input)
 }
 
-fn parse_simple(input: Span) -> IResult<Span, WithPos<Instruction>> {
-    map(with_position_mut(alt((char('.'), char(',')))), |s| {
-        s.transfer(match s.value {
-            '.' => Instruction::PutC,
-            ',' => Instruction::GetC,
-            _ => unreachable!(),
-        })
-    })(input)
+fn parse_io(input: Span) -> IResult<Span, WithPos<Instruction>> {
+    map(
+        with_position_mut(alt((many1(char('.')), many1(char(','))))),
+        |s| {
+            let instr = if s.value[0] == '.' {
+                Instruction::Put(s.value.len() as u32)
+            } else {
+                Instruction::Get(s.value.len() as u32)
+            };
+
+            s.transfer(instr)
+        },
+    )(input)
 }
 
 fn parse_move(input: Span) -> IResult<Span, WithPos<Instruction>> {
@@ -160,7 +165,7 @@ fn parse_instr(input: Span) -> IResult<Span, WithPos<Instruction>> {
         alt((
             parse_add,
             parse_move,
-            parse_simple,
+            parse_io,
             parse_loop,
             parse_super,
             parse_inline_value,

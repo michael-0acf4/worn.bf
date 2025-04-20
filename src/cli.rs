@@ -4,8 +4,13 @@ use crate::parser::{
     parse_program,
 };
 use crate::wbf::WBFEmitter;
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 use std::path::PathBuf;
+
+#[derive(Parser, Debug, Clone, ValueEnum, PartialEq, Eq)]
+pub enum AdvOptions {
+    UnsafeFoldIO,
+}
 
 /// WORN (Write Once, Run Nowhere):
 /// The "ultimate" Brainfuck emitter/compiler/optimizer
@@ -24,6 +29,9 @@ pub struct CompilerArgs {
     /// Print to stdout
     #[arg(short, long)]
     pub print: bool,
+    /// Advanced options
+    #[arg(short, long, value_enum)]
+    pub advanced: Vec<AdvOptions>,
 }
 
 impl CompilerArgs {
@@ -38,7 +46,10 @@ impl CompilerArgs {
             let og_count = program_str.len();
 
             if let Some(level) = self.optimize {
-                let opt = Optimizer { level };
+                let opt = Optimizer {
+                    level,
+                    adv_opt: self.advanced.clone(),
+                };
                 program = opt.apply(program);
                 program_str = program
                     .iter()

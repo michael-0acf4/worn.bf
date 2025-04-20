@@ -1,7 +1,11 @@
-use crate::parser::ast::{BInstr, Reconstruct};
+use crate::{
+    cli::AdvOptions,
+    parser::ast::{BInstr, Reconstruct},
+};
 
 pub struct Optimizer {
     pub level: u8,
+    pub adv_opt: Vec<AdvOptions>,
 }
 
 type Program = Vec<BInstr>;
@@ -25,39 +29,30 @@ impl Optimizer {
     fn pass1_fold(&self, program: Program) -> Program {
         let mut out = vec![];
         let mut iter = program.into_iter();
+        macro_rules! aggregate_instr {
+            ($variant:ident, $n:ident, $iter:ident, $out:ident) => {{
+                let mut agg = *$n;
+                while let Some(next) = $iter.clone().next() {
+                    if let BInstr::$variant(m) = &next {
+                        agg += *m;
+                        $iter.next();
+                    } else {
+                        break;
+                    }
+                }
+
+                if agg != 0 {
+                    $out.push(BInstr::$variant(agg));
+                }
+            }};
+        }
 
         while let Some(instr) = iter.next() {
             match &instr {
-                BInstr::Add(n) => {
-                    let mut agg = *n;
-                    while let Some(next) = iter.clone().next() {
-                        if let BInstr::Add(m) = &next {
-                            agg += *m;
-                            iter.next();
-                        } else {
-                            break;
-                        }
-                    }
-
-                    if agg != 0 {
-                        out.push(BInstr::Add(agg));
-                    }
-                }
-                BInstr::Move(n) => {
-                    let mut agg = *n;
-                    while let Some(next) = iter.clone().next() {
-                        if let BInstr::Move(m) = &next {
-                            agg += *m;
-                            iter.next();
-                        } else {
-                            break;
-                        }
-                    }
-
-                    if agg != 0 {
-                        out.push(BInstr::Move(agg));
-                    }
-                }
+                BInstr::Add(n) => aggregate_instr!(Add, n, iter, out),
+                BInstr::Move(n) => aggregate_instr!(Move, n, iter, out),
+                BInstr::PutC(n) => aggregate_instr!(PutC, n, iter, out),
+                BInstr::GetC(n) => aggregate_instr!(GetC, n, iter, out),
                 _ => out.push(instr),
             }
         }
@@ -72,7 +67,6 @@ impl Optimizer {
 
         let mut out = vec![];
         let mut iter = program.into_iter();
-
         while let Some(instr) = iter.next() {
             match &instr {
                 BInstr::Add(n) => {
@@ -81,14 +75,58 @@ impl Optimizer {
                     }
 
                     let compr = if self.level == 2 {
-                        compress_incr(*n, Some(5.0))
+                        compress_incr(*n, Some(5.0), true)
                     } else {
                         // > 3
-                        compress_incr(*n, None)
+                        compress_incr(*n, None, true)
                     };
-                    let recons = compr.reconstruct();
 
+                    let recons = compr.reconstruct();
                     if recons.len() < (*n).abs() as usize {
+                        out.extend(compr);
+                    } else {
+                        // no op
+                        out.push(instr);
+                    }
+                }
+                BInstr::PutC(n) | BInstr::GetC(n) => {
+                    let fold_io = self.adv_opt.contains(&AdvOptions::UnsafeFoldIO);
+                    if *n == 0 || !fold_io {
+                        if !fold_io {
+                            out.push(instr);
+                        }
+
+                        continue;
+                    }
+
+                    // Extremely unsafe when there are prepared values ahead
+                    // Memory can be overwritten
+                    // Which should make sense since I/O are assumed to have no effect on memory.
+                    // Folding with a temp counter breaks that assumption
+                    let mut compr = vec![];
+                    compr.push(BInstr::Move(1));
+                    compr.extend(if self.level == 2 {
+                        compress_incr(*n as i32, Some(5.0), false)
+                    } else {
+                        // > 3
+                        compress_incr(*n as i32, None, false)
+                    });
+                    compr.extend(vec![
+                        BInstr::LoopStart,
+                        BInstr::Add(-1),
+                        BInstr::Move(-1),
+                        match instr {
+                            BInstr::PutC(_) => BInstr::PutC(1),
+                            BInstr::GetC(_) => BInstr::GetC(1),
+                            _ => unreachable!(),
+                        },
+                        BInstr::Move(1),
+                        BInstr::LoopEnd,
+                    ]);
+                    compr.push(BInstr::Move(-1));
+
+                    let recons = compr.reconstruct();
+                    if recons.len() < *n as usize {
                         out.extend(compr);
                     } else {
                         // no op
@@ -113,7 +151,7 @@ pub struct CompressConst {
     weight: i32,
 }
 
-fn compress_incr_constants(count: i32, chunk: f32) -> CompressConst {
+fn compress_incr_constants(count: i32, chunk: f32, upper: bool) -> CompressConst {
     // Idea:
     // One of the smallest/easiest way to represent something
     // close to 10 for example doing multiples of 5
@@ -128,7 +166,8 @@ fn compress_incr_constants(count: i32, chunk: f32) -> CompressConst {
     let inner_count = (k.floor() - 1.0) as i32; // how many nested loop: 5^inner_count
 
     let k1 = k - k.floor();
-    let outer_fact = chunk.powf(1.0 + k1).ceil(); // take 1.0 from latest exponent
+    let k2 = chunk.powf(1.0 + k1);
+    let outer_fact = if upper { k2.ceil() } else { k2.floor() }; // take 1.0 from latest exponent
 
     // Goal: N ~ outer_fact * C^inner_count
     // since C^(k1 + 1) . C^([k] - 1) = C^k
@@ -149,21 +188,19 @@ fn compress_incr_constants(count: i32, chunk: f32) -> CompressConst {
     }
 }
 
-pub fn find_best_parameters(count: i32, from: u32, to: u32) -> CompressConst {
-    let mut best = compress_incr_constants(count, from as f32);
+pub fn find_best_parameters(count: i32, from: u32, to: u32, upper: bool) -> CompressConst {
+    let mut best = compress_incr_constants(count, from as f32, upper);
     for chunk in (from + 1)..=to {
-        let current = compress_incr_constants(count, chunk as f32);
+        let current = compress_incr_constants(count, chunk as f32, upper);
         if current.weight < best.weight {
             best = current;
         }
     }
 
-    println!("best {}", best.chunk);
-
     best
 }
 
-fn compress_incr(count: i32, chunk: Option<f32>) -> Vec<BInstr> {
+fn compress_incr(count: i32, chunk: Option<f32>, upper: bool) -> Vec<BInstr> {
     if count == 0 {
         // unreachable after basic fold
         return vec![];
@@ -177,9 +214,9 @@ fn compress_incr(count: i32, chunk: Option<f32>) -> Vec<BInstr> {
         outer_fact,
         weight: _,
     } = if let Some(chunk) = chunk {
-        compress_incr_constants(count, chunk)
+        compress_incr_constants(count, chunk, upper)
     } else {
-        find_best_parameters(count, 2, 100)
+        find_best_parameters(count, 2, 100, upper)
     };
 
     let mut out = vec![];

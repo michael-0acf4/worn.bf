@@ -72,6 +72,7 @@ pub fn test_simple_optimization() {
         output: None,
         optimize: Some(0),
         print: false,
+        advanced: vec![],
     }
     .run()
     .unwrap()
@@ -82,6 +83,7 @@ pub fn test_simple_optimization() {
         output: None,
         optimize: Some(1),
         print: false,
+        advanced: vec![],
     }
     .run()
     .unwrap()
@@ -101,6 +103,7 @@ pub fn test_complex_optimization() {
         output: None,
         optimize: Some(0),
         print: false,
+        advanced: vec![],
     }
     .run()
     .unwrap()
@@ -111,6 +114,7 @@ pub fn test_complex_optimization() {
         output: None,
         optimize: Some(5),
         print: false,
+        advanced: vec![],
     }
     .run()
     .unwrap()

@@ -363,9 +363,10 @@ impl WBFEmitter {
 
     pub fn emit_instr(&mut self, instr: &WithPos<Instruction>) -> Result<(), CompileError> {
         match &instr.value {
-            Instruction::Add(_) | Instruction::Move(_) | Instruction::PutC | Instruction::GetC => {
-                self.emit_inline(instr.value.clone().into())?
-            }
+            Instruction::Add(_)
+            | Instruction::Move(_)
+            | Instruction::Put(_)
+            | Instruction::Get(_) => self.emit_inline(instr.value.clone().into())?,
             Instruction::Loop { body } => self.emit_loop(body)?,
             Instruction::InlineValue(super_value) => {
                 self.emit_super_value(&instr.transfer(super_value.clone()))?
