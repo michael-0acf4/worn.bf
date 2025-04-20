@@ -1,26 +1,10 @@
 super incr(n) {
-    // R repeats the second argument the amount of the first argument
-    super first(a) {
-        super second(b) {
-            super third(c) {
-                R(b, +)
-            }
-
-            super fourth(d) {
-                third(d)
-            }
-
-            fourth(b)
-        }
-
-        second(a)
-    }
-
-    first(n)
+    // R is a native super instruction that repeats the second argument the amount of the first argument
+    R(n, +) 
 }
 
 super six() {
-    incr(6) // instruction as arg works as long as they are simple and does not have ',' as it is a valid bf instruction
+    incr(6) // instruction as arg works as long as they are simple and of the same 'kind' (e.g. contiguous +)
 }
 
 super ten() {
@@ -40,4 +24,4 @@ printASCII(0) // A
 printASCII(1) // B
 >65+. // B
 
->>>>"CD"<<.>.>. // "CD" is a shortcut for  R(68, +)>R(69, +)
+>>>>"CD"<<.>.>. // "CD" is a shortcut for  R(67, +)>R(68, +)

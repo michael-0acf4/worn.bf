@@ -132,10 +132,22 @@ impl Named for SymbolInfo {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct GenericSymbol {
+    pub name: String,
+}
+
+impl Named for GenericSymbol {
+    fn get_name(&self) -> String {
+        self.name.clone()
+    }
+}
+
 #[derive(Debug)]
 pub struct Context {
     func_scope: ScopedStack<SymbolInfo>,
     variable_scope: ScopedStack<VariableSet>,
+    fncall_stack: ScopedStack<GenericSymbol>,
     output: Vec<BInstr>,
 }
 
@@ -147,6 +159,7 @@ impl Context {
         Self {
             func_scope: ScopedStack::new(),
             variable_scope: ScopedStack::new(),
+            fncall_stack: ScopedStack::new(),
             output: vec![],
         }
     }
@@ -159,14 +172,20 @@ impl Context {
         self.variable_scope.push(VariableSet { name, value });
     }
 
+    pub fn push_fncall(&mut self, callee: String) {
+        self.fncall_stack.push(GenericSymbol { name: callee });
+    }
+
     pub fn new_scope(&mut self) {
         self.func_scope.new_scope();
         self.variable_scope.new_scope();
+        self.fncall_stack.new_scope();
     }
 
     pub fn end_scope(&mut self) {
         self.func_scope.end_scope();
         self.variable_scope.end_scope();
+        self.fncall_stack.end_scope();
     }
 
     pub fn resolve_variable_rec(&mut self, name: &str) -> Option<WithPos<Instruction>> {
@@ -286,6 +305,19 @@ impl WBFEmitter {
                 callee,
                 args: callee_args,
             } => {
+                if self
+                    .context
+                    .fncall_stack
+                    .find_rvisiblle(&callee.value)
+                    .is_some()
+                {
+                    return Err(CompileError::Invalid {
+                        message: format!("{:?} cannot be recursive", callee.value),
+                        start: callee.start,
+                        end: callee.end,
+                    });
+                }
+
                 if callee.value == "R" && callee_args.len() == 2 {
                     self.context.new_scope();
                     self.context.push_variable(
@@ -302,7 +334,12 @@ impl WBFEmitter {
                         for (name, value) in args.iter().zip(callee_args.iter()) {
                             self.context.push_variable(name.clone(), value.clone());
                         }
+
+                        self.context.new_scope();
+                        self.context.push_fncall(callee.value.to_owned());
                         self.emit_body(&body)?;
+                        self.context.end_scope();
+
                         self.context.end_scope();
 
                         return Ok(());
