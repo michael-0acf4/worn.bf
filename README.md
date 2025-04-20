@@ -175,7 +175,7 @@ So if we have some value $N = 169$ and $C = 3$
 $$169 = 3^k \rightarrow k = log_3 (169) \approx 4.669$$
 
 We break down into an inner loop count $\lfloor 4.669 \rfloor-1 = 3$, and an
-outer factor $\lceil $3^{4.669 - \lfloor 4.669 \rfloor + 1 = 1.669} \rceil = 7$.
+outer factor $\lceil 3^{4.669 - \lfloor 4.669 \rfloor + 1 = 1.669} \rceil = 7$.
 
 This trick works and is exact as whatever the difference $\delta$, we get it
 minus the target, then we add/sub to compensate.
@@ -235,7 +235,7 @@ express it in a way that it is safely optimizable.
 
 This can be enabled with `-a unsafe-fold-io` and `-O3` or higher.
 
-> **WARNING**
+> [!WARNING]
 >
 > Although I made some accent on I/O in particular, most above optimization
 > tricks work because they all assume that at any point in the program any
