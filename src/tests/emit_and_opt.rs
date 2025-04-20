@@ -1,9 +1,8 @@
-use insta::assert_debug_snapshot;
-
 use crate::{
     parser::{ast::Reconstruct, parse_program},
-    sbf::SBFEmitter,
+    wbf::WBFEmitter,
 };
+use insta::assert_debug_snapshot;
 
 #[test]
 pub fn test_simple_code_expansion() {
@@ -54,10 +53,22 @@ pub fn test_simple_code_expansion() {
     "#;
 
     let ret = parse_program(&source).and_then(|program| {
-        let mut emitter = SBFEmitter::new(program);
+        let mut emitter = WBFEmitter::new(program);
         emitter.compile().map_err(|e| e.to_string())?;
         emitter.finalize().map(|bi| bi.reconstruct())
     });
 
     assert_debug_snapshot!(ret)
 }
+
+// #[test]
+// pub fn test_simple_optimization() {
+//     let args = CompilerArgs {
+//         file: PathBuf::from("./rinari.bf"),
+//         output: None,
+//         optimize: true,
+//         print: false,
+//     };
+
+//     let program = args.run();
+// }

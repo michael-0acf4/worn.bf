@@ -1,5 +1,5 @@
 ---
-source: src/tests/emitter.rs
+source: src/tests/emit_and_opt.rs
 expression: ret
 snapshot_kind: text
 ---

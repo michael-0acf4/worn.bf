@@ -190,12 +190,12 @@ impl Context {
     }
 }
 
-pub struct SBFEmitter {
+pub struct WBFEmitter {
     context: Context,
-    program: Vec<WithPos<Instruction>>,
+    pub program: Vec<WithPos<Instruction>>,
 }
 
-impl SBFEmitter {
+impl WBFEmitter {
     pub fn new(program: Vec<WithPos<Instruction>>) -> Self {
         Self {
             context: Context::create(),
