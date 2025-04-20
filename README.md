@@ -3,8 +3,6 @@
 A minimalistic language that extends Brainf\*ck allowing the use of custom super
 instructions and compiles into optimized Brainf\*ck code.
 
-
-
 # Overview
 
 ## CLI
@@ -108,7 +106,8 @@ super incr(n) {
 Optimization here does not mean make it run fast, but rather **shorten** the
 character count and **maybe** make it fast and memory efficient along the way.
 
-Two Braif\*ck programs are considered equal if the stdout and stdin are the same, we do not really care about the resulting memory layout.
+Two Braif\*ck programs are considered equal if the stdout and stdin are the
+same, we do not really care about the resulting memory layout.
 
 The most obvious step is expression folding, that can be decided at compile
 time.
@@ -145,7 +144,8 @@ To preserve memory layout the resulting code is slightly denser (35 characters).
 
 Why this form?
 
-For example, one of the shortest/easiest way to represent a value close to 10 is doing 2 * 5 since `++++++++++` is just `>++[<+++++>-]` (only 3 characters more).
+For example, one of the shortest/easiest way to represent a value close to 10 is
+doing 2 * 5 since `++++++++++` is just `>++[<+++++>-]` (only 3 characters more).
 
 ```rust
 // 16 = 3 * 5 + 1
@@ -161,7 +161,9 @@ For example, one of the shortest/easiest way to represent a value close to 10 is
 Works well but we can do better with nested loops (requires temporary memory).
 The trick is to loop close to the target.
 
-An easy trick that I found very useful (in the context of code generation) is to find the exponent of some number C that is closest to the target value. Use that to define the amount of inner loop to effectively perform a multiplication.
+An easy trick that I found very useful (in the context of code generation) is to
+find the exponent of some number C that is closest to the target value. Use that
+to define the amount of inner loop to effectively perform a multiplication.
 
 Assume
 
@@ -170,11 +172,14 @@ $$N = C^k = C^{\lfloor k \rfloor -1} \times \lceil C^{ k - \lfloor k \rfloor + 1
 So if we have some value $N = 169$ and $C = 3$
 $$169 = 3^k \rightarrow k = log_3 (169) \approx 4.669$$
 
-We break down into an inner loop count $\lfloor 4.669 \rfloor-1 = 3$, and an outer factor $\lceil $3^{4.669 - \lfloor 4.669 \rfloor + 1 = 1.669} \rceil = 7$.
+We break down into an inner loop count $\lfloor 4.669 \rfloor-1 = 3$, and an
+outer factor $ \lceil
+$3^{4.669 - \lfloor 4.669 \rfloor + 1 = 1.669} \rceil = 7$.
 
-This trick works and is exact whatever the difference $\delta$ is we get it minus the target, then we add/sub to compensate.
+This trick works and is exact as whatever the difference $\delta$, we get it
+minus the target, then we add/sub to compensate.
 
-$$\delta = N - C^{\lfloor k \rfloor -1} \times \lceil C^{ k - \lfloor k \rfloor + 1 } \rceil = 169 - 3^{3} \times 7 = 20$$ 
+$$\delta = N - C^{\lfloor k \rfloor -1} \times \lceil C^{ k - \lfloor k \rfloor + 1 } \rceil = 169 - 3^{3} \times 7 = 20$$
 
 Then we get..
 
@@ -190,4 +195,7 @@ R(169, +)
 
 // After another pass..
 >>>+++++++[<+++[<+++[<+++>-]>-]>-]<<<>+++++++[<--->-]<+
+
+// And another basic fold pass..
+>>>+++++++[<+++[<+++[<+++>-]>-]>-]<<+++++++[<--->-]<+
 ```

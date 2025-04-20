@@ -80,24 +80,30 @@ impl Optimizer {
                         continue;
                     }
 
-                    let best_fold = if self.level == 2 {
-                        self.compress_incr(*n, 5.0)
+                    let (best_fold, recons) = if self.level == 2 {
+                        let compr = self.compress_incr(*n, 5.0);
+                        let recons = compr.reconstruct();
+                        (compr, recons)
                     } else {
                         // > 3
                         let best = [3, 4, 5, 8, 10]
-                            .map(|base| (base, self.compress_incr(*n, base as f32)))
+                            .map(|base| {
+                                let folded = self.compress_incr(*n, base as f32);
+                                let recons = folded.reconstruct();
+                                (base, folded, recons)
+                            })
                             .into_iter()
-                            .min_by_key(|(base, v)| (*base, v.len()));
+                            .min_by_key(|(_, _, recons)| recons.len());
 
-                        if let Some((_base, best)) = best {
+                        if let Some((_base, best, recons)) = best {
                             // println!("Found best chunk size {base}, will be used as base.");
-                            best
+                            (best, recons)
                         } else {
                             unreachable!()
                         }
                     };
 
-                    if best_fold.reconstruct().len() < (*n).abs() as usize {
+                    if recons.len() < (*n).abs() as usize {
                         out.extend(best_fold);
                     } else {
                         // no op
