@@ -73,8 +73,8 @@ The above code should expand into the following (optimization disabled)
 
 >++++++++++[>++++++<-]>+++++.>++++++++++[>++++++<-]>++++++.>++++++++++[>++++++<-]>+++++++.+.+.>++++++++++[>++++++<-]>+++++.>++++++++++[>++++++<-]>++++++.>++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++.>>>>+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++>++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++<<.>.>.
 
-// After -O 4, from 368 to 266 characters
->++++++++++[>++++++<-]>+++++.>++++++++++[>++++++<-]>++++++.>++++++++++[>++++++<-]>+++++++.+.+.>++++++++++[>++++++<-]>+++++.>++++++++++[>++++++<-]>++++++.>>>++++++++[<+++[<+++>-]>-]<<------.>>>>>>++++++++[<+++[<+++>-]>-]<<----->>>++++++++[<+++[<+++>-]>-]<<----<<.>.>.
+// After -O4, from 368 to 254 instructions
+>++++++++++[>++++++<-]>+++++.>++++++++++[>++++++<-]>++++++.>++++++++++[>++++++<-]>+++++++.+.+.>++++++++++[>++++++<-]>+++++.>++++++++++[>++++++<-]>++++++.>>++++++++++++++[<+++++>-]<----.>>>>>++++++++++++++[<+++++>-]<--->>++++++++++++++[<+++++>-]<--<<.>.>.
 ```
 
 Super functions can be nested..
@@ -104,7 +104,7 @@ super incr(n) {
 ## Optimization schemes
 
 Optimization here does not mean make it run fast, but rather **shorten** the
-character count and **maybe** make it fast and memory efficient along the way.
+instruction count and **maybe** make it fast and memory efficient along the way.
 
 Two Braif\*ck programs are considered equal if the stdout and stdin are the
 same, we do not really care about the resulting memory layout.
@@ -129,14 +129,15 @@ R(69, +).
 +++[>+++++[>++++<-]<-]>>+++++++++.
 ```
 
-Which is effectively smaller than 69 consecutive '+' (34 characters), and even
-in this case the following is shorter (32 characters).
+Which is effectively smaller than 69 consecutive '+' (34 instructions), and even
+in this case the following is shorter (32 instructions).
 
 ```rust
 +++[>+++++[>+++++<-]<-]>>------.
 ```
 
-To preserve memory layout the resulting code is slightly denser (35 characters).
+To preserve memory layout the resulting code is slightly denser (35
+instructions).
 
 ```rust
 >>>+++[<+++++[<+++++>-]>-]<<------.
@@ -145,7 +146,8 @@ To preserve memory layout the resulting code is slightly denser (35 characters).
 Why this form?
 
 For example, one of the shortest/easiest way to represent a value close to 10 is
-doing 2 * 5 since `++++++++++` is just `>++[<+++++>-]` (only 3 characters more).
+doing 2 * 5 since `++++++++++` is just `>++[<+++++>-]` (only 3 instructions
+more).
 
 ```rust
 // 16 = 3 * 5 + 1
@@ -173,13 +175,12 @@ So if we have some value $N = 169$ and $C = 3$
 $$169 = 3^k \rightarrow k = log_3 (169) \approx 4.669$$
 
 We break down into an inner loop count $\lfloor 4.669 \rfloor-1 = 3$, and an
-outer factor $ \lceil
-$3^{4.669 - \lfloor 4.669 \rfloor + 1 = 1.669} \rceil = 7$.
+outer factor $\lceil $3^{4.669 - \lfloor 4.669 \rfloor + 1 = 1.669} \rceil = 7$.
 
 This trick works and is exact as whatever the difference $\delta$, we get it
 minus the target, then we add/sub to compensate.
 
-$$\delta = N - C^{\lfloor k \rfloor -1} \times \lceil C^{ k - \lfloor k \rfloor + 1 } \rceil = 169 - 3^{3} \times 7 = 20$$
+$$\delta = N - C^{\lfloor k \rfloor -1} \times \lceil C^{ k - \lfloor k \rfloor + 1 } \rceil = 169 - 3^{3} \times 7 = -20$$
 
 Then we get..
 
@@ -199,3 +200,11 @@ R(169, +)
 // And another basic fold pass..
 >>>+++++++[<+++[<+++[<+++>-]>-]>-]<<+++++++[<--->-]<+
 ```
+
+> **WARNING**
+>
+> All above optimization tricks work because they all assume that at any point
+> in the program any upcoming memory cells are all 0. There is no way to check
+> that at compile without running the actual program.
+>
+> You can disable optimization with `-O0`

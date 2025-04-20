@@ -1,4 +1,7 @@
+use std::path::PathBuf;
+
 use crate::{
+    cli::CompilerArgs,
     parser::{ast::Reconstruct, parse_program},
     wbf::WBFEmitter,
 };
@@ -61,14 +64,60 @@ pub fn test_simple_code_expansion() {
     assert_debug_snapshot!(ret)
 }
 
-// #[test]
-// pub fn test_simple_optimization() {
-//     let args = CompilerArgs {
-//         file: PathBuf::from("./rinari.bf"),
-//         output: None,
-//         optimize: true,
-//         print: false,
-//     };
+#[test]
+pub fn test_simple_optimization() {
+    let file = PathBuf::from("./examples/rinari.bf");
+    let no_opt = CompilerArgs {
+        file: file.clone(),
+        output: None,
+        optimize: Some(0),
+        print: false,
+    }
+    .run()
+    .unwrap()
+    .reconstruct();
 
-//     let program = args.run();
-// }
+    let after_opt = CompilerArgs {
+        file: file.clone(),
+        output: None,
+        optimize: Some(1),
+        print: false,
+    }
+    .run()
+    .unwrap()
+    .reconstruct();
+
+    assert!(after_opt.len() < no_opt.len());
+    let reduction_amount = 100.0 * after_opt.len() as f32 / no_opt.len() as f32;
+    println!("Reduction {reduction_amount}%");
+    assert!(reduction_amount < 45.0);
+}
+
+#[test]
+pub fn test_complex_optimization() {
+    let file = PathBuf::from("./src/tests/fold_me.wbf");
+    let no_opt = CompilerArgs {
+        file: file.clone(),
+        output: None,
+        optimize: Some(0),
+        print: false,
+    }
+    .run()
+    .unwrap()
+    .reconstruct();
+
+    let after_opt = CompilerArgs {
+        file: file.clone(),
+        output: None,
+        optimize: Some(5),
+        print: false,
+    }
+    .run()
+    .unwrap()
+    .reconstruct();
+
+    assert!(after_opt.len() < no_opt.len());
+    let reduction_amount = 100.0 * after_opt.len() as f32 / no_opt.len() as f32;
+    println!("Reduction {reduction_amount}%");
+    assert!(reduction_amount < 50.0);
+}

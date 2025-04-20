@@ -1,0 +1,9 @@
+super print(v) {
+    v.>
+}
+
+print("A")
+print("B")
+print("C")
+print("D")
+print("E")
